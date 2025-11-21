@@ -1,0 +1,52 @@
+name: Build and Test Sudoku
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Grant execute permission for Gradle
+        run: chmod +x gradlew
+      - name: Build
+        run: ./gradlew :app:assembleDist --no-daemon
+      - name: Upload distribution artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sudoku-dist
+          path: app/build/distributions/app.zip
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Grant execute permission for Gradle
+        run: chmod +x gradlew
+      - name: Run tests
+        run: ./gradlew :app:test --no-daemon
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: app/build/reports/tests/test

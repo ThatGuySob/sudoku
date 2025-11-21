@@ -2,7 +2,8 @@ package ie.tudublin
 
 class Sudoku(rows: List<String>) {
     private val grid = IntArray(81)
-    private var solved = false
+    private var iterations = 0
+    private val LIMIT = 2_000_000
 
     init {
         require(rows.size == 9 && rows.all { it.length == 9 }) {
@@ -13,30 +14,72 @@ class Sudoku(rows: List<String>) {
         }
     }
 
-    fun solve() {
-        println("Starting grid:\n\n$this")
-        placeNumber(0)
-        println(if (solved) "Solution:\n\n$this" else "Unsolvable!")
+    fun solve(): Boolean {
+        iterations = 0
+        if (!isValidStartingGrid()) return false
+        return placeNumber(0)
     }
 
-    private fun placeNumber(pos: Int) {
-        if (solved) return
+    private fun isValidStartingGrid(): Boolean {
+        // rows
+        for (r in 0..8) {
+            val seen = BooleanArray(10)
+            for (c in 0..8) {
+                val v = grid[r * 9 + c]
+                if (v != 0) {
+                    if (seen[v]) return false
+                    seen[v] = true
+                }
+            }
+        }
+        // cols
+        for (c in 0..8) {
+            val seen = BooleanArray(10)
+            for (r in 0..8) {
+                val v = grid[r * 9 + c]
+                if (v != 0) {
+                    if (seen[v]) return false
+                    seen[v] = true
+                }
+            }
+        }
+        // boxes
+        for (br in 0..2) {
+            for (bc in 0..2) {
+                val seen = BooleanArray(10)
+                for (dr in 0..2) {
+                    for (dc in 0..2) {
+                        val idx = (br * 3 + dr) * 9 + (bc * 3 + dc)
+                        val v = grid[idx]
+                        if (v != 0) {
+                            if (seen[v]) return false
+                            seen[v] = true
+                        }
+                    }
+                }
+            }
+        }
+        return true
+    }
+
+    private fun placeNumber(pos: Int): Boolean {
+        if (iterations++ > LIMIT) return false
+
         if (pos == 81) {
-            solved = true
-            return
+            return true
         }
         if (grid[pos] > 0) {
-            placeNumber(pos + 1)
-            return
+            return placeNumber(pos + 1)
         }
         for (n in 1..9) {
             if (checkValidity(n, pos % 9, pos / 9)) {
                 grid[pos] = n
-                placeNumber(pos + 1)
-                if (solved) return
+                if (placeNumber(pos + 1)) return true
                 grid[pos] = 0
             }
         }
+
+        return false
     }
 
     private fun checkValidity(v: Int, x: Int, y: Int): Boolean {
@@ -66,4 +109,6 @@ class Sudoku(rows: List<String>) {
         }
         return sb.toString()
     }
+    fun getGrid(): List<List<Int>> =
+        (0..8).map { r -> (0..8).map { c -> grid[r * 9 + c] } }
 }
